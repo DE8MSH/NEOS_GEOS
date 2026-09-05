@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           test -f release/source-parts/READY
-          cat release/source-parts/r46h-geos-arm-m15.14.tar.gz.b64.part-* | base64 -d > release/r46h-geos-arm-m15.14.tar.gz
+          cat release/source-parts/v2-part-* | base64 -d > release/r46h-geos-arm-m15.14.tar.gz
           expected=$(awk '$2 == "r46h-geos-arm-m15.14.tar.gz" {print $1}' release/M15.14-SHA256SUMS.txt)
           actual=$(sha256sum release/r46h-geos-arm-m15.14.tar.gz | awk '{print $1}')
           test -n "$expected"
