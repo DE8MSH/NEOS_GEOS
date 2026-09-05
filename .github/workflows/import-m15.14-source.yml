@@ -1,0 +1,56 @@
+name: Import M15.14 source tree
+
+on:
+  push:
+    paths:
+      - 'release/r46h-geos-arm-m15.14.tar.gz'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=$(awk '$2 == "r46h-geos-arm-m15.14.tar.gz" {print $1}' release/M15.14-SHA256SUMS.txt)
+          actual=$(sha256sum release/r46h-geos-arm-m15.14.tar.gz | awk '{print $1}')
+          test -n "$expected"
+          test "$actual" = "$expected"
+
+      - name: Unpack tracked source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          tar -xzf release/r46h-geos-arm-m15.14.tar.gz -C "$tmp"
+          test "$(cat "$tmp/r46h-geos-arm/VERSION")" = "1.6.14"
+          cp -a "$tmp/r46h-geos-arm/." .
+          # The release tarball intentionally excludes these repository-side artifacts.
+          test -f release/r46h-geos-arm-m15.14.tar.gz
+          test -f release/build-m15.14-fast.sh
+          test -f release/M15.14-SHA256SUMS.txt
+
+      - name: Commit browsable source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'NEOS_GEOS release importer'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'Source tree already imported.'
+            exit 0
+          fi
+          git commit -m 'Import browsable M15.14 source tree'
+          git push
